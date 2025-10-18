@@ -13,6 +13,8 @@ class ScatterplotD3 {
     circleRadius = 3;
     xScale;
     yScale;
+    brush;
+    brushG;
 
 
     constructor(el){
@@ -46,6 +48,10 @@ class ScatterplotD3 {
         this.matSvg.append("g")
             .attr("class","yAxisG")
         ;
+
+        // Initialize brush
+        this.brushG = this.matSvg.append("g")
+            .attr("class", "brush");
     }
 
     changeBorderAndOpacity(selection, selected){
@@ -110,11 +116,47 @@ class ScatterplotD3 {
             .call(d3.axisLeft(this.yScale))
     }
 
+    initializeBrush = function(visData, xAttribute, yAttribute, controllerMethods){
+        // Create the brush
+        this.brush = d3.brush()
+            .extent([[0, 0], [this.width, this.height]])
+            .on("start brush end", (event) => {
+                const selection = event.selection;
+                
+                if (!selection) {
+                    // If no selection, reset all items
+                    controllerMethods.handleBrushSelection([]);
+                    return;
+                }
+
+                // Get the bounds of the brush selection
+                const [[x0, y0], [x1, y1]] = selection;
+
+                // Find all points within the brush selection
+                const selectedItems = visData.filter(item => {
+                    const xPos = this.xScale(item[xAttribute]);
+                    const yPos = this.yScale(item[yAttribute]);
+                    return xPos >= x0 && xPos <= x1 && yPos >= y0 && yPos <= y1;
+                });
+
+                // Update the selection via controller
+                controllerMethods.handleBrushSelection(selectedItems);
+            });
+
+        // Apply the brush to the brush group
+        this.brushG.call(this.brush);
+    }
+
 
     renderScatterplot = function (visData, xAttribute, yAttribute, controllerMethods){
         console.log("render scatterplot with a new data list ...")
         // build the size scales and x,y axis
         this.updateAxis(visData, xAttribute, yAttribute);
+
+        // Initialize brush (only once or when data changes)
+        if (!this.brush) {
+            this.initializeBrush(visData, xAttribute, yAttribute, controllerMethods);
+        }
 
         this.matSvg.selectAll(".markerG")
             // all elements with the class .markerG (empty the first time)
