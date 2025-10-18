@@ -1,0 +1,50 @@
+.parallelCoordinatesDivContainer {
+    height: 100%;
+}
+
+/* Parallel Coordinates specific styles */
+.parallelCoordinatesG .axis path,
+.parallelCoordinatesG .axis line {
+    fill: none;
+    stroke: #000;
+    shape-rendering: crispEdges;
+}
+
+.parallelCoordinatesG .axis text {
+    font-size: 11px;
+}
+
+.parallelCoordinatesG .data-line {
+    cursor: pointer;
+    fill: none;
+    stroke: steelblue;
+    stroke-width: 1.2px;
+    opacity: 0.2;
+    transition: stroke 0.2s, stroke-width 0.2s, opacity 0.2s;
+}
+
+.parallelCoordinatesG .data-line.selected {
+    stroke: rgba(253, 81, 13, 0.658);
+    stroke-width: 2px;
+    opacity: 0.9;
+}
+
+.parallelCoordinatesG .data-line:hover {
+    stroke: rgb(5, 184, 34) !important;
+    stroke-width: 3.5px !important;
+    opacity: 1 !important;
+}
+
+.parallelCoordinatesG .dimension-label {
+    cursor: default;
+    user-select: none;
+    fill: black;
+    font-size: 12px;
+    font-weight: bold;
+    text-anchor: middle;
+}
+
+.parallelCoordinatesG .background .data-line {
+    stroke: #ddd;
+    opacity: 0.5;
+}

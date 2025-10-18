@@ -2,6 +2,7 @@ import './App.css';
 import {useState, useEffect} from 'react'
 import {fetchCSV} from "./utils/helper";
 import ScatterplotContainer from "./components/scatterplot/ScatterplotContainer";
+import ParallelCoordinatesContainer from "./components/parallelcoordinates/ParallelCoordinatesContainer";
 
 function App() {
     console.log("App component function call...")
@@ -26,15 +27,65 @@ function App() {
 
     const scatterplotControllerMethods= {
         updateSelectedItems: (items) =>{
-            setSelectedItems(items.map((item) => {return {...item,selected:true}} ));
+            // For single item clicks, add to existing selection
+            if (items.length === 1) {
+                setSelectedItems(prevSelected => {
+                    const itemIndex = items[0].index;
+                    // Check if item is already selected
+                    const alreadySelected = prevSelected.some(item => item.index === itemIndex);
+                    
+                    if (alreadySelected) {
+                        // Remove item if already selected (toggle behavior)
+                        return prevSelected.filter(item => item.index !== itemIndex);
+                    } else {
+                        // Add item to selection
+                        return [...prevSelected, {...items[0], selected: true}];
+                    }
+                });
+            } else {
+                // For brush selections (multiple items), replace the selection
+                setSelectedItems(items.map((item) => {return {...item, selected: true}}));
+            }
+        }
+    };
+
+    const parallelCoordinatesControllerMethods= {
+        updateSelectedItems: (items) =>{
+            // For single item clicks, add to existing selection
+            if (items.length === 1) {
+                setSelectedItems(prevSelected => {
+                    const itemIndex = items[0].index;
+                    // Check if item is already selected
+                    const alreadySelected = prevSelected.some(item => item.index === itemIndex);
+                    
+                    if (alreadySelected) {
+                        // Remove item if already selected (toggle behavior)
+                        return prevSelected.filter(item => item.index !== itemIndex);
+                    } else {
+                        // Add item to selection
+                        return [...prevSelected, {...items[0], selected: true}];
+                    }
+                });
+            } else {
+                // For brush selections (multiple items), replace the selection
+                setSelectedItems(items.map((item) => {return {...item, selected: true}}));
+            }
         }
     };
 
     return (
         <div className="App">
             <div id={"MultiviewContainer"} className={"row"}>
-                <ScatterplotContainer scatterplotData={data} xAttribute={"area"} yAttribute={"price"} selectedItems={selectedItems} scatterplotControllerMethods={scatterplotControllerMethods}/>
-                
+                <ScatterplotContainer scatterplotData={data}
+                    xAttribute={"area"} yAttribute={"price"}
+                    selectedItems={selectedItems}
+                    scatterplotControllerMethods={scatterplotControllerMethods}
+                />
+                <ParallelCoordinatesContainer 
+                    parallelCoordinatesData={data}
+                    selectedItems={selectedItems}
+                    parallelCoordinatesControllerMethods={parallelCoordinatesControllerMethods}
+                />
             </div>
         </div>
     );
