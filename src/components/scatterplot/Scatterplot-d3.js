@@ -123,6 +123,13 @@ class ScatterplotD3 {
             .on("start brush end", (event) => {
                 const selection = event.selection;
                 
+                // On brush start, clear parallel coordinates brushes
+                if (event.type === "start" && selection) {
+                    if (controllerMethods.clearOtherBrushes) {
+                        controllerMethods.clearOtherBrushes();
+                    }
+                }
+                
                 if (!selection) {
                     // If no selection, reset all items
                     controllerMethods.handleBrushSelection([]);
@@ -145,6 +152,13 @@ class ScatterplotD3 {
 
         // Apply the brush to the brush group
         this.brushG.call(this.brush);
+    }
+    
+    // Clear the 2D brush programmatically
+    clearBrush = function() {
+        if (this.brush && this.brushG) {
+            this.brushG.call(this.brush.move, null);
+        }
     }
 
 

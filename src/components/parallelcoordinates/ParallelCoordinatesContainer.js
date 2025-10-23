@@ -1,9 +1,9 @@
 import './ParallelCoordinates.css'
-import {useEffect, useRef} from 'react';
+import {useEffect, useRef, useImperativeHandle, forwardRef} from 'react';
 
 import ParallelCoordinatesD3 from './ParallelCoordinates-d3';
 
-function ParallelCoordinatesContainer({parallelCoordinatesData, selectedItems, parallelCoordinatesControllerMethods}){
+const ParallelCoordinatesContainer = forwardRef(({parallelCoordinatesData, selectedItems, parallelCoordinatesControllerMethods}, ref) => {
 
     // every time the component re-render
     useEffect(()=>{
@@ -12,6 +12,16 @@ function ParallelCoordinatesContainer({parallelCoordinatesData, selectedItems, p
 
     const divContainerRef = useRef(null);
     const parallelCoordinatesD3Ref = useRef(null)
+    
+    // Expose methods to parent component
+    useImperativeHandle(ref, () => ({
+        clearAllBrushes: () => {
+            const parallelCoordinatesD3 = parallelCoordinatesD3Ref.current;
+            if (parallelCoordinatesD3) {
+                parallelCoordinatesD3.clearAllBrushes();
+            }
+        }
+    }));
 
     const getChartSize = function(){
         // getting size from parent item
@@ -55,12 +65,24 @@ function ParallelCoordinatesContainer({parallelCoordinatesData, selectedItems, p
         const getSelectedItems = function(){
             return selectedItems;
         }
+        const handleBrushSelection = function(selectedItems){
+            console.log("handleBrushSelection in parallel coordinates with", selectedItems.length, "items")
+            parallelCoordinatesControllerMethods.updateSelectedItems(selectedItems)
+        }
+        const clearOtherBrushes = function(){
+            console.log("clearOtherBrushes called from parallel coordinates")
+            if (parallelCoordinatesControllerMethods.clearScatterplotBrush) {
+                parallelCoordinatesControllerMethods.clearScatterplotBrush();
+            }
+        }
 
         const controllerMethods = {
             handleOnClick,
             handleOnMouseEnter,
             handleOnMouseLeave,
-            getSelectedItems
+            getSelectedItems,
+            handleBrushSelection,
+            clearOtherBrushes
         }
 
         if(parallelCoordinatesDataRef.current !== parallelCoordinatesData) {
@@ -86,9 +108,9 @@ function ParallelCoordinatesContainer({parallelCoordinatesData, selectedItems, p
     },[selectedItems])
 
     return(
-        <div ref={divContainerRef} className="parallelCoordinatesDivContainer col2">
+        <div ref={divContainerRef} className="parallelCoordinatesDivContainer col-60">
         </div>
     )
-}
+});
 
 export default ParallelCoordinatesContainer;

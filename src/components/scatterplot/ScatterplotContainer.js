@@ -1,11 +1,11 @@
 import './Scatterplot.css'
-import {useEffect, useRef} from 'react';
+import {useEffect, useRef, useImperativeHandle, forwardRef} from 'react';
 
 import ScatterplotD3 from './Scatterplot-d3';
 
 // TODO: import action methods from reducers
 
-function ScatterplotContainer({scatterplotData, xAttribute, yAttribute, selectedItems, scatterplotControllerMethods}){
+const ScatterplotContainer = forwardRef(({scatterplotData, xAttribute, yAttribute, selectedItems, scatterplotControllerMethods}, ref) => {
 
     // every time the component re-render
     useEffect(()=>{
@@ -14,6 +14,16 @@ function ScatterplotContainer({scatterplotData, xAttribute, yAttribute, selected
 
     const divContainerRef=useRef(null);
     const scatterplotD3Ref = useRef(null)
+    
+    // Expose methods to parent component
+    useImperativeHandle(ref, () => ({
+        clearBrush: () => {
+            const scatterplotD3 = scatterplotD3Ref.current;
+            if (scatterplotD3) {
+                scatterplotD3.clearBrush();
+            }
+        }
+    }));
 
     const getChartSize = function(){
         // getting size from parent item
@@ -58,12 +68,19 @@ function ScatterplotContainer({scatterplotData, xAttribute, yAttribute, selected
             console.log("handleBrushSelection with", selectedItems.length, "items")
             scatterplotControllerMethods.updateSelectedItems(selectedItems)
         }
+        const clearOtherBrushes = function(){
+            console.log("clearOtherBrushes called from scatterplot")
+            if (scatterplotControllerMethods.clearParallelCoordinatesBrushes) {
+                scatterplotControllerMethods.clearParallelCoordinatesBrushes();
+            }
+        }
 
         const controllerMethods={
             handleOnClick,
             handleOnMouseEnter,
             handleOnMouseLeave,
-            handleBrushSelection
+            handleBrushSelection,
+            clearOtherBrushes
         }
 
         if(scatterplotDataRef.current !== scatterplotData) {
@@ -86,9 +103,9 @@ function ScatterplotContainer({scatterplotData, xAttribute, yAttribute, selected
         scatterplotD3.highlightSelectedItems(selectedItems)
     },[selectedItems])
     return(
-        <div ref={divContainerRef} className="scatterplotDivContainer col2">
+        <div ref={divContainerRef} className="scatterplotDivContainer col-40">
         </div>
     )
-}
+});
 
 export default ScatterplotContainer;

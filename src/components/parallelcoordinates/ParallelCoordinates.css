@@ -14,6 +14,31 @@
     font-size: 11px;
 }
 
+/* Different styles for different axis types */
+.parallelCoordinatesG .axis-linear path,
+.parallelCoordinatesG .axis-linear line {
+    stroke: #000;
+}
+
+.parallelCoordinatesG .axis-point path,
+.parallelCoordinatesG .axis-point line {
+    stroke: #4682b4;
+}
+
+.parallelCoordinatesG .axis-categorical path,
+.parallelCoordinatesG .axis-categorical line {
+    stroke: #8b4513;
+}
+
+.parallelCoordinatesG .axis-categorical text {
+    font-size: 10px;
+    font-style: italic;
+}
+
+.parallelCoordinatesG .axis-point text {
+    font-weight: 500;
+}
+
 .parallelCoordinatesG .data-line {
     cursor: pointer;
     fill: none;
@@ -44,7 +69,70 @@
     text-anchor: middle;
 }
 
+.parallelCoordinatesG .dimension-dropdown-container {
+    overflow: visible;
+}
+
+.parallelCoordinatesG .dimension-select {
+    width: 100%;
+    padding: 4px 8px;
+    font-size: 11px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: white;
+    cursor: pointer;
+    font-family: Arial, sans-serif;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.parallelCoordinatesG .dimension-select:hover {
+    border-color: steelblue;
+    box-shadow: 0 2px 6px rgba(70, 130, 180, 0.3);
+}
+
+.parallelCoordinatesG .dimension-select:focus {
+    outline: none;
+    border-color: steelblue;
+    box-shadow: 0 0 0 2px rgba(70, 130, 180, 0.2);
+}
+
+/* Drag handle styling */
+.parallelCoordinatesG .drag-handle {
+    cursor: grab;
+    fill: #666;
+    transition: fill 0.2s;
+}
+
+.parallelCoordinatesG .drag-handle:hover {
+    fill: steelblue;
+}
+
+.parallelCoordinatesG .drag-handle:active {
+    cursor: grabbing;
+}
+
 .parallelCoordinatesG .background .data-line {
     stroke: #ddd;
     opacity: 0.5;
+}
+
+/* Brush styling for parallel coordinates */
+.parallelCoordinatesG .brush .overlay {
+    fill: none;
+    pointer-events: all;
+    cursor: ns-resize;
+}
+
+.parallelCoordinatesG .brush .selection {
+    fill: steelblue;
+    fill-opacity: 0.3;
+    stroke: steelblue;
+    stroke-width: 2px;
+}
+
+.parallelCoordinatesG .brush .handle {
+    fill: steelblue;
+    fill-opacity: 0.8;
+    cursor: ns-resize;
 }

@@ -1,5 +1,5 @@
 import './App.css';
-import {useState, useEffect} from 'react'
+import {useState, useEffect, useRef} from 'react'
 import {fetchCSV} from "./utils/helper";
 import ScatterplotContainer from "./components/scatterplot/ScatterplotContainer";
 import ParallelCoordinatesContainer from "./components/parallelcoordinates/ParallelCoordinatesContainer";
@@ -7,6 +7,11 @@ import ParallelCoordinatesContainer from "./components/parallelcoordinates/Paral
 function App() {
     console.log("App component function call...")
     const [data,setData] = useState([])
+    
+    // Refs for the visualization components
+    const scatterplotRef = useRef(null);
+    const parallelCoordinatesRef = useRef(null);
+    
     // every time the component re-render
     useEffect(()=>{
         console.log("App useEffect (called each time App re-renders)");
@@ -29,6 +34,7 @@ function App() {
         updateSelectedItems: (items) =>{
             // For single item clicks, add to existing selection
             if (items.length === 1) {
+                console.log("DEBUG", items[0])
                 setSelectedItems(prevSelected => {
                     const itemIndex = items[0].index;
                     // Check if item is already selected
@@ -45,6 +51,11 @@ function App() {
             } else {
                 // For brush selections (multiple items), replace the selection
                 setSelectedItems(items.map((item) => {return {...item, selected: true}}));
+            }
+        },
+        clearParallelCoordinatesBrushes: () => {
+            if (parallelCoordinatesRef.current) {
+                parallelCoordinatesRef.current.clearAllBrushes();
             }
         }
     };
@@ -53,6 +64,7 @@ function App() {
         updateSelectedItems: (items) =>{
             // For single item clicks, add to existing selection
             if (items.length === 1) {
+
                 setSelectedItems(prevSelected => {
                     const itemIndex = items[0].index;
                     // Check if item is already selected
@@ -70,18 +82,26 @@ function App() {
                 // For brush selections (multiple items), replace the selection
                 setSelectedItems(items.map((item) => {return {...item, selected: true}}));
             }
+        },
+        clearScatterplotBrush: () => {
+            if (scatterplotRef.current) {
+                scatterplotRef.current.clearBrush();
+            }
         }
     };
 
     return (
         <div className="App">
             <div id={"MultiviewContainer"} className={"row"}>
-                <ScatterplotContainer scatterplotData={data}
+                <ScatterplotContainer 
+                    ref={scatterplotRef}
+                    scatterplotData={data}
                     xAttribute={"area"} yAttribute={"price"}
                     selectedItems={selectedItems}
                     scatterplotControllerMethods={scatterplotControllerMethods}
                 />
-                <ParallelCoordinatesContainer 
+                <ParallelCoordinatesContainer
+                    ref={parallelCoordinatesRef}
                     parallelCoordinatesData={data}
                     selectedItems={selectedItems}
                     parallelCoordinatesControllerMethods={parallelCoordinatesControllerMethods}

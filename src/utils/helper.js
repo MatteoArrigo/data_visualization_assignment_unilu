@@ -88,7 +88,10 @@ export function getDefaultFontSize (){
 export async function fetchCSV(filePath,callback_f){
     fetchText(filePath,(textResponse)=>{
         const result = Papa.parse(textResponse, {header:true, dynamicTyping:true});
-        result.data = result.data.map((item,i)=>{return {...item,index:i}})
+        // Filter out empty rows (rows where all values are null/undefined/empty)
+        result.data = result.data.filter(row => {
+            return Object.values(row).some(val => val !== null && val !== undefined && val !== '');
+        }).map((item,i)=>{return {...item,index:i}})
         callback_f(result);
     })
 }
