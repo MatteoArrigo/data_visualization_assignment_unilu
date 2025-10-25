@@ -22,6 +22,9 @@ class ParallelCoordinatesD3 {
     // All available dimensions
     allDimensions = [];
     
+    // Number of axes to display
+    numAxesToShow = 6;
+    
     // Brushes for each dimension
     brushes = {};
     brushRanges = {};
@@ -87,7 +90,7 @@ class ParallelCoordinatesD3 {
         
         // Create x scale for dimension positioning (using indices instead of dimension names)
         // Add padding on both sides to prevent choiceboxes from being cut off
-        const axisPadding = 80; // Padding in pixels on each side
+        const axisPadding = 10; // Padding in pixels on each side
         this.xScale = d3.scalePoint()
             .domain(d3.range(dimensions.length))
             .range([axisPadding, this.width - axisPadding]);
@@ -171,10 +174,6 @@ class ParallelCoordinatesD3 {
             .attr("x", 0)
             .attr("y", -60)
             .attr("text-anchor", "middle")
-            .style("cursor", "grab")
-            .style("font-size", "20px")
-            .style("font-weight", "bold")
-            .style("user-select", "none")
             .text("::");
         
         // Add foreignObject for dropdown
@@ -215,7 +214,7 @@ class ParallelCoordinatesD3 {
         
         const drag = d3.drag()
             .on("start", function(event, d) {
-                d3.select(this).style("cursor", "grabbing");
+                d3.select(this).classed("active", true);
                 d3.select(this).raise();
             })
             .on("drag", function(event, d) {
@@ -224,7 +223,7 @@ class ParallelCoordinatesD3 {
                 d3.select(this).attr("transform", `translate(${x}, 0)`);
             })
             .on("end", function(event, d) {
-                d3.select(this).style("cursor", "grab");
+                d3.select(this).classed("active", false);
                 
                 // Find the nearest axis position
                 const x = event.x;
@@ -307,6 +306,39 @@ class ParallelCoordinatesD3 {
         
         // Re-render
         this.renderParallelCoordinates(this.visData, controllerMethods);
+    }
+    
+    // Method to update the number of axes displayed
+    updateAxesCount = function(newCount) {
+        const currentCount = this.dimensions.length;
+        
+        if (newCount === currentCount) return;
+        
+        this.numAxesToShow = newCount;
+        
+        if (newCount > currentCount) {
+            // Add axes - find dimensions not currently displayed
+            const dimensionsToAdd = this.allDimensions.filter(dim => 
+                !this.dimensions.includes(dim)
+            );
+            
+            // Add dimensions up to the new count
+            const needed = newCount - currentCount;
+            for (let i = 0; i < needed && i < dimensionsToAdd.length; i++) {
+                this.dimensions.push(dimensionsToAdd[i]);
+            }
+        } else {
+            // Remove axes from the end
+            const toRemove = currentCount - newCount;
+            this.dimensions.splice(currentCount - toRemove, toRemove);
+        }
+        
+        // Find the controllerMethods from the last render
+        // We need to trigger a re-render, but we need controllerMethods
+        // Store it as a class property during render
+        if (this.lastControllerMethods) {
+            this.renderParallelCoordinates(this.visData, this.lastControllerMethods);
+        }
     }
     
     // Add brushes to each axis
@@ -415,12 +447,21 @@ class ParallelCoordinatesD3 {
     
     // Clear all brushes programmatically
     clearAllBrushes = function() {
+
+        const self = this;
+        
         // Clear all brush ranges
         this.brushRanges = {};
         
-        // Clear visual brushes on all axes
-        this.matSvg.selectAll(".brush").each(function() {
-            d3.select(this).call(d3.brushY().move, null);
+        // Clear each brush using its stored instance
+        this.matSvg.selectAll(".dimension").each(function(d) {
+            if (d) {
+                const brushKey = `${d.dim}_${d.index}`;
+                const brush = self.brushes[brushKey];
+                if (brush) {
+                    d3.select(this).select(".brush").call(brush.move, null);
+                }
+            }
         });
     }
 
@@ -443,6 +484,9 @@ class ParallelCoordinatesD3 {
         
         if (visData.length === 0) return;
         
+        // Store controller methods for axis count updates
+        this.lastControllerMethods = controllerMethods;
+        
         // Store data reference for brush filtering
         this.visData = visData;
         
@@ -457,14 +501,14 @@ class ParallelCoordinatesD3 {
         
         // Initialize dimensions if not set
         if (this.dimensions.length === 0) {
-            // Use first 6 dimensions for display (but all are available in dropdowns)
-            this.dimensions = allDimensions.slice(0, Math.min(6, allDimensions.length));
+            // Use numAxesToShow dimensions for display (but all are available in dropdowns)
+            this.dimensions = allDimensions.slice(0, Math.min(this.numAxesToShow, allDimensions.length));
         } else {
             // Validate current dimensions still exist in the data
             this.dimensions = this.dimensions.filter(dim => allDimensions.includes(dim));
-            // If some were removed, add new ones up to 6
-            if (this.dimensions.length < Math.min(6, allDimensions.length)) {
-                const needed = Math.min(6, allDimensions.length) - this.dimensions.length;
+            // If some were removed, add new ones up to numAxesToShow
+            if (this.dimensions.length < Math.min(this.numAxesToShow, allDimensions.length)) {
+                const needed = Math.min(this.numAxesToShow, allDimensions.length) - this.dimensions.length;
                 const toAdd = allDimensions.filter(dim => !this.dimensions.includes(dim)).slice(0, needed);
                 this.dimensions = [...this.dimensions, ...toAdd];
             }
@@ -489,27 +533,56 @@ class ParallelCoordinatesD3 {
                         .attr("class", "data-line")
                         .attr("d", d => this.path(d))
                         .on("click", (event, itemData) => {
-                            controllerMethods.handleOnClick(itemData);
+                            // Clear all brushes first
+                            this.clearAllBrushes();
+                            
+                            // Also clear scatterplot brush
+                            if (controllerMethods.clearOtherBrushes) {
+                                controllerMethods.clearOtherBrushes();
+                            }
+                            
+                            // Find all items that match at the clicked segment
+                            const matchingItems = this.findMatchingItemsAtSegment(event, itemData);
+                            
+                            if (matchingItems.length > 1) {
+                                // Multiple overlapping lines - select all of them
+                                const currentSelected = controllerMethods.getSelectedItems ? 
+                                    controllerMethods.getSelectedItems() : [];
+                                const selectedIndices = new Set(currentSelected.map(item => item.index));
+                                const matchingIndices = matchingItems.map(item => item.index);
+                                
+                                // Check if all matching items are already selected
+                                const allSelected = matchingIndices.every(idx => selectedIndices.has(idx));
+                                
+                                if (allSelected) {
+                                    // Toggle off - remove all matching items from selection
+                                    const newSelection = currentSelected.filter(
+                                        item => !matchingIndices.includes(item.index)
+                                    );
+                                    controllerMethods.updateSelectedItems(newSelection);
+                                } else {
+                                    // Add all matching items to selection (keep existing selection)
+                                    const newItems = matchingItems.filter(
+                                        item => !selectedIndices.has(item.index)
+                                    );
+                                    controllerMethods.updateSelectedItems([...currentSelected, ...newItems]);
+                                }
+                            } else if (matchingItems.length === 1) {
+                                // Single line - use toggle behavior
+                                controllerMethods.handleOnClick(matchingItems[0]);
+                            } else {
+                                // Fallback to original item if no segment detected
+                                controllerMethods.handleOnClick(itemData);
+                            }
                         })
                         .on("mouseenter", (event, itemData) => {
-                            // Hover is handled by CSS :hover
-                            d3.select(event.currentTarget).raise();
+                            this.handleLineHover(event, itemData);
+                        })
+                        .on("mousemove", (event, itemData) => {
+                            this.handleLineHover(event, itemData);
                         })
                         .on("mouseleave", (event, itemData) => {
-                            // Return to appropriate state based on selection
-                            const selectedIndices = new Set(
-                                controllerMethods.getSelectedItems ? 
-                                controllerMethods.getSelectedItems().map(item => item.index) : 
-                                []
-                            );
-                            const isSelected = selectedIndices.has(itemData.index);
-                            
-                            // If selected, keep it raised
-                            if (!isSelected) {
-                                // Let other selected items stay on top
-                                this.matSvg.select(".foreground").selectAll(".data-line.selected")
-                                    .raise();
-                            }
+                            this.clearLineHover(controllerMethods);
                         });
                     return lines;
                 },
@@ -523,6 +596,72 @@ class ParallelCoordinatesD3 {
                     exit.remove();
                 }
             );
+    }
+
+    // Find all items that match at a specific segment
+    findMatchingItemsAtSegment = function(event, itemData) {
+        const self = this;
+        
+        // Get mouse position relative to the SVG
+        const [mouseX, mouseY] = d3.pointer(event, self.matSvg.node());
+        
+        // Find which segment (between which two axes) the mouse is hovering over
+        let segmentIndex = -1;
+        const axisPositions = this.dimensions.map((dim, i) => this.xScale(i));
+        
+        for (let i = 0; i < axisPositions.length - 1; i++) {
+            if (mouseX >= axisPositions[i] && mouseX <= axisPositions[i + 1]) {
+                segmentIndex = i;
+                break;
+            }
+        }
+        
+        if (segmentIndex === -1) return [];
+        
+        // Get the dimensions for the two adjacent axes
+        const dim1 = this.dimensions[segmentIndex];
+        const dim2 = this.dimensions[segmentIndex + 1];
+        
+        // Get the values at these dimensions for the hovered item
+        const value1 = itemData[dim1];
+        const value2 = itemData[dim2];
+        
+        // Find all data items that have the same values at these two dimensions
+        const matchingItems = this.visData.filter(d => 
+            d[dim1] === value1 && d[dim2] === value2
+        );
+        
+        return matchingItems;
+    }
+
+    // Handle hover on a line segment
+    handleLineHover = function(event, itemData) {
+        const matchingItems = this.findMatchingItemsAtSegment(event, itemData);
+        const matchingIndices = new Set(matchingItems.map(d => d.index));
+        
+        // Highlight all matching lines
+        this.matSvg.select(".foreground").selectAll(".data-line")
+            .classed("hovered", d => matchingIndices.has(d.index))
+            .filter(d => matchingIndices.has(d.index))
+            .raise();
+    }
+
+    // Clear hover effect
+    clearLineHover = function(controllerMethods) {
+        // Remove hover class from all lines
+        this.matSvg.select(".foreground").selectAll(".data-line")
+            .classed("hovered", false);
+        
+        // Restore stacking order - selected items on top
+        const selectedIndices = new Set(
+            controllerMethods.getSelectedItems ? 
+            controllerMethods.getSelectedItems().map(item => item.index) : 
+            []
+        );
+        
+        this.matSvg.select(".foreground").selectAll(".data-line")
+            .filter(d => selectedIndices.has(d.index))
+            .raise();
     }
 
     clear = function() {

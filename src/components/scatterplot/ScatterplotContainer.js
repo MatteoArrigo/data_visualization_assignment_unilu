@@ -3,8 +3,6 @@ import {useEffect, useRef, useImperativeHandle, forwardRef} from 'react';
 
 import ScatterplotD3 from './Scatterplot-d3';
 
-// TODO: import action methods from reducers
-
 const ScatterplotContainer = forwardRef(({scatterplotData, xAttribute, yAttribute, selectedItems, scatterplotControllerMethods}, ref) => {
 
     // every time the component re-render

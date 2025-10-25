@@ -54,7 +54,7 @@
     opacity: 0.9;
 }
 
-.parallelCoordinatesG .data-line:hover {
+.parallelCoordinatesG .data-line.hovered {
     stroke: rgb(5, 184, 34) !important;
     stroke-width: 3.5px !important;
     opacity: 1 !important;
@@ -74,8 +74,8 @@
 }
 
 .parallelCoordinatesG .dimension-select {
-    width: 100%;
-    padding: 4px 8px;
+    width: 80%;
+    padding: 2px 1px;
     font-size: 11px;
     border: 1px solid #ccc;
     border-radius: 4px;
@@ -101,6 +101,9 @@
 .parallelCoordinatesG .drag-handle {
     cursor: grab;
     fill: #666;
+    font-size: 20px;
+    font-weight: bold;
+    user-select: none;
     transition: fill 0.2s;
 }
 

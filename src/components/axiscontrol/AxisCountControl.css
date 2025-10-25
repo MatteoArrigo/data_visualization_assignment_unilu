@@ -1,0 +1,38 @@
+/* Axes count control styling */
+.axis-count-control {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+    margin-top: 10px;
+}
+
+.axis-count-control label {
+    margin-right: 10px;
+    font-weight: bold;
+    font-size: 14px;
+    color: #333;
+}
+
+.axes-count-input {
+    width: 60px;
+    padding: 5px 8px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    text-align: center;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.axes-count-input:hover {
+    border-color: steelblue;
+}
+
+.axes-count-input:focus {
+    outline: none;
+    border-color: steelblue;
+    box-shadow: 0 0 0 2px rgba(70, 130, 180, 0.2);
+}

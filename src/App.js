@@ -3,10 +3,13 @@ import {useState, useEffect, useRef} from 'react'
 import {fetchCSV} from "./utils/helper";
 import ScatterplotContainer from "./components/scatterplot/ScatterplotContainer";
 import ParallelCoordinatesContainer from "./components/parallelcoordinates/ParallelCoordinatesContainer";
+import AxisCountControl from "./components/axiscontrol/AxisCountControl";
 
 function App() {
     console.log("App component function call...")
     const [data,setData] = useState([])
+    const [numAxes, setNumAxes] = useState(6); // State for number of axes
+    const [maxAxes, setMaxAxes] = useState(13); // Maximum number of axes (will be updated based on data)
     
     // Refs for the visualization components
     const scatterplotRef = useRef(null);
@@ -22,6 +25,11 @@ function App() {
         fetchCSV("data/Housing.csv",(response)=>{
             console.log("initial setData() ...")
             setData(response.data);
+            // Update maxAxes based on data attributes (excluding 'index')
+            if (response.data.length > 0) {
+                const attributeCount = Object.keys(response.data[0]).filter(key => key !== 'index').length;
+                setMaxAxes(attributeCount);
+            }
         })
         return ()=>{
             console.log("App did unmount");
@@ -34,7 +42,7 @@ function App() {
         updateSelectedItems: (items) =>{
             // For single item clicks, add to existing selection
             if (items.length === 1) {
-                console.log("DEBUG", items[0])
+                console.log("[DEBUG] Selected ", items[0])
                 setSelectedItems(prevSelected => {
                     const itemIndex = items[0].index;
                     // Check if item is already selected
@@ -64,6 +72,7 @@ function App() {
         updateSelectedItems: (items) =>{
             // For single item clicks, add to existing selection
             if (items.length === 1) {
+                console.log("[DEBUG] Selected ", items[0])
 
                 setSelectedItems(prevSelected => {
                     const itemIndex = items[0].index;
@@ -105,8 +114,14 @@ function App() {
                     parallelCoordinatesData={data}
                     selectedItems={selectedItems}
                     parallelCoordinatesControllerMethods={parallelCoordinatesControllerMethods}
+                    numAxes={numAxes}
                 />
             </div>
+            <AxisCountControl 
+                numAxes={numAxes}
+                maxAxes={maxAxes}
+                onAxisCountChange={setNumAxes}
+            />
         </div>
     );
 }

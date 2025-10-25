@@ -3,7 +3,7 @@ import {useEffect, useRef, useImperativeHandle, forwardRef} from 'react';
 
 import ParallelCoordinatesD3 from './ParallelCoordinates-d3';
 
-const ParallelCoordinatesContainer = forwardRef(({parallelCoordinatesData, selectedItems, parallelCoordinatesControllerMethods}, ref) => {
+const ParallelCoordinatesContainer = forwardRef(({parallelCoordinatesData, selectedItems, parallelCoordinatesControllerMethods, numAxes}, ref) => {
 
     // every time the component re-render
     useEffect(()=>{
@@ -76,13 +76,18 @@ const ParallelCoordinatesContainer = forwardRef(({parallelCoordinatesData, selec
             }
         }
 
+        const updateSelectedItems = function(items){
+            parallelCoordinatesControllerMethods.updateSelectedItems(items)
+        }
+
         const controllerMethods = {
             handleOnClick,
             handleOnMouseEnter,
             handleOnMouseLeave,
             getSelectedItems,
             handleBrushSelection,
-            clearOtherBrushes
+            clearOtherBrushes,
+            updateSelectedItems
         }
 
         if(parallelCoordinatesDataRef.current !== parallelCoordinatesData) {
@@ -95,6 +100,14 @@ const ParallelCoordinatesContainer = forwardRef(({parallelCoordinatesData, selec
         }
     },[parallelCoordinatesData, parallelCoordinatesControllerMethods, selectedItems]);// if dependencies, useEffect is called after each data update
 
+    // Handle numAxes changes
+    useEffect(() => {
+        console.log("ParallelCoordinatesContainer useEffect with dependency [numAxes], called when numAxes changes...");
+        const parallelCoordinatesD3 = parallelCoordinatesD3Ref.current;
+        if (parallelCoordinatesD3 && parallelCoordinatesData.length > 0) {
+            parallelCoordinatesD3.updateAxesCount(numAxes);
+        }
+    }, [numAxes, parallelCoordinatesData]);
 
     useEffect(()=>{
         console.log("ParallelCoordinatesContainer useEffect with dependency [selectedItems]," +
