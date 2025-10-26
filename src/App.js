@@ -1,5 +1,5 @@
 import './App.css';
-import {useState, useEffect, useMemo, useRef} from 'react'
+import {useState, useEffect, useRef} from 'react'
 import {fetchCSV} from "./utils/helper";
 import ScatterplotContainer from "./components/scatterplot/ScatterplotContainer";
 import ParallelCoordinatesContainer from "./components/parallelcoordinates/ParallelCoordinatesContainer";
@@ -38,8 +38,8 @@ function App() {
 
     const [selectedItems, setSelectedItems] = useState([])
 
-    // Memoize controller methods to prevent re-creation on every render
-    const scatterplotControllerMethods = useMemo(() => ({
+    // Controller methods for scatterplot
+    const scatterplotControllerMethods = {
         updateSelectedItems: (items) =>{
             // For single item clicks, add to existing selection
             if (items.length === 1) {
@@ -67,9 +67,10 @@ function App() {
                 parallelCoordinatesClearBrushRef.current();
             }
         }
-    }), []);
+    };
 
-    const parallelCoordinatesControllerMethods = useMemo(() => ({
+    // Controller methods for parallel coordinates
+    const parallelCoordinatesControllerMethods = {
         updateSelectedItems: (items) => {
             // In PCP, always replace the selection
             setSelectedItems(items.map((item) => {return {...item, selected: true}}));
@@ -79,7 +80,7 @@ function App() {
                 scatterplotClearBrushRef.current();
             }
         }
-    }), []);
+    };
 
     return (
         <div className="App">
