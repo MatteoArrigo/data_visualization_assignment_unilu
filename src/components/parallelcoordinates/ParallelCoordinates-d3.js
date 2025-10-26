@@ -206,24 +206,26 @@ class ParallelCoordinatesD3 {
     addDragBehavior = function(dimensionGroups, controllerMethods) {
         const self = this;
         
-        // This is the d3 drag behavior, that will be added to each axis's drag handle
+        // This is the d3 drag behavior, that will be added to each dimension group
         const drag = d3.drag()
             .on("start", function(event, d) {
                 d3.select(this).classed("active", true);
                 d3.select(this).raise();
+                // Store the original position
+                d.startX = self.xScale(d.index);
                 // The active class indicates that the axis is being dragged
                 // and raise() brings it to the front
             })
             .on("drag", function(event, d) {
-                // Update the drag-handle position during drag
+                // Update the dimension group position during drag
                 const x = event.x;
                 d3.select(this).attr("transform", `translate(${x}, 0)`);
             })
             .on("end", function(event, d) {
                 d3.select(this).classed("active", false);
                 
-                // Find the nearest axis position
-                const x = event.x;
+                // Find the nearest axis position based on final x position
+                const x = d.startX + event.x;
                 const positions = self.dimensions.map((dim, i) => self.xScale(i));
                 
                 // Find closest position
@@ -258,8 +260,10 @@ class ParallelCoordinatesD3 {
                 }
             });
         
-        // Apply drag to the drag handle
-        dimensionGroups.select(".drag-handle").call(drag);
+        // Apply drag to the entire dimension group via the drag handle
+        dimensionGroups.select(".drag-handle")
+            .style("cursor", "grab")
+            .call(drag);
     }
     
     // Add brushes to each axis

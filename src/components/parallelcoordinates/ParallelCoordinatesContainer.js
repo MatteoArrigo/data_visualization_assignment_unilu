@@ -3,7 +3,7 @@ import {useEffect, useRef} from 'react';
 
 import ParallelCoordinatesD3 from './ParallelCoordinates-d3';
 
-const ParallelCoordinatesContainer = ({parallelCoordinatesData, selectedItems, parallelCoordinatesControllerMethods, numAxes, onClearBrushRequested}) => {
+const ParallelCoordinatesContainer = ({parallelCoordinatesData, selectedItems, parallelCoordinatesControllerMethods, numAxes, clearBrushRef}) => {
 
     // every time the component re-render
     useEffect(()=>{
@@ -32,13 +32,22 @@ const ParallelCoordinatesContainer = ({parallelCoordinatesData, selectedItems, p
         const parallelCoordinatesD3 = new ParallelCoordinatesD3(divContainerRef.current);
         parallelCoordinatesD3.create({size: getChartSize()});
         parallelCoordinatesD3Ref.current = parallelCoordinatesD3;
+        
+        // Expose clearAllBrushes method via ref
+        clearBrushRef.current = () => {
+            if (parallelCoordinatesD3Ref.current) {
+                parallelCoordinatesD3Ref.current.clearAllBrushes();
+            }
+        };
+        
         return ()=>{
             // did unmount, the return function is called once the component did unmount (removed from the screen)
             console.log("[PARALLEL COORDINATES CONTAINER] useEffect [] return function, called when the component did unmount...");
             const parallelCoordinatesD3 = parallelCoordinatesD3Ref.current;
             parallelCoordinatesD3.clear()
+            clearBrushRef.current = null;
         }
-    },[]);// if empty array, useEffect is called after the component did mount (has been created)
+    },[clearBrushRef]);// if empty array, useEffect is called after the component did mount (has been created)
 
     // Update parallel coordinates when data or attributes change
     useEffect(()=>{
@@ -104,18 +113,6 @@ const ParallelCoordinatesContainer = ({parallelCoordinatesData, selectedItems, p
             parallelCoordinatesD3.highlightSelectedItems(selectedItems)
         }
     }, [selectedItems])
-
-    // Handle external clear brush request
-    useEffect(() => {
-        if (onClearBrushRequested) {
-            onClearBrushRequested(() => {
-                const parallelCoordinatesD3 = parallelCoordinatesD3Ref.current;
-                if (parallelCoordinatesD3) {
-                    parallelCoordinatesD3.clearAllBrushes();
-                }
-            });
-        }
-    }, [onClearBrushRequested]);
 
     return(
         <div ref={divContainerRef} className="parallelCoordinatesDivContainer col-60">

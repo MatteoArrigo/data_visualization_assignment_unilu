@@ -1,5 +1,5 @@
 import './App.css';
-import {useState, useEffect, useCallback, useMemo} from 'react'
+import {useState, useEffect, useMemo, useRef} from 'react'
 import {fetchCSV} from "./utils/helper";
 import ScatterplotContainer from "./components/scatterplot/ScatterplotContainer";
 import ParallelCoordinatesContainer from "./components/parallelcoordinates/ParallelCoordinatesContainer";
@@ -11,9 +11,9 @@ function App() {
     const [numAxes, setNumAxes] = useState(6); // State for number of axes
     const [maxAxes, setMaxAxes] = useState(13); // Maximum number of axes (will be updated based on data)
     
-    // Callback functions for clearing brushes
-    const [clearScatterplotBrushCallback, setClearScatterplotBrushCallback] = useState(null);
-    const [clearParallelCoordinatesBrushesCallback, setClearParallelCoordinatesBrushesCallback] = useState(null);
+    // Refs to access D3 clear brush methods
+    const scatterplotClearBrushRef = useRef(null);
+    const parallelCoordinatesClearBrushRef = useRef(null);
     
     // every time the component re-render
     useEffect(()=>{
@@ -63,11 +63,11 @@ function App() {
             }
         },
         clearParallelCoordinatesBrushes: () => {
-            if (clearParallelCoordinatesBrushesCallback) {
-                clearParallelCoordinatesBrushesCallback();
+            if (parallelCoordinatesClearBrushRef.current) {
+                parallelCoordinatesClearBrushRef.current();
             }
         }
-    }), [clearParallelCoordinatesBrushesCallback]);
+    }), []);
 
     const parallelCoordinatesControllerMethods = useMemo(() => ({
         updateSelectedItems: (items) => {
@@ -75,21 +75,11 @@ function App() {
             setSelectedItems(items.map((item) => {return {...item, selected: true}}));
         },
         clearScatterplotBrush: () => {
-            if (clearScatterplotBrushCallback) {
-                clearScatterplotBrushCallback();
+            if (scatterplotClearBrushRef.current) {
+                scatterplotClearBrushRef.current();
             }
         }
-    }), [clearScatterplotBrushCallback]);
-
-    // Stable callback for registering scatterplot clear brush function
-    const registerScatterplotClearBrush = useCallback((callback) => {
-        setClearScatterplotBrushCallback(() => callback);
-    }, []);
-
-    // Stable callback for registering parallel coordinates clear brush function
-    const registerParallelCoordinatesClearBrush = useCallback((callback) => {
-        setClearParallelCoordinatesBrushesCallback(() => callback);
-    }, []);
+    }), []);
 
     return (
         <div className="App">
@@ -99,7 +89,7 @@ function App() {
                     xAttribute={"area"} yAttribute={"price"}
                     selectedItems={selectedItems}
                     scatterplotControllerMethods={scatterplotControllerMethods}
-                    onClearBrushRequested={registerScatterplotClearBrush}
+                    clearBrushRef={scatterplotClearBrushRef}
                 />
                 
                 <ParallelCoordinatesContainer
@@ -107,7 +97,7 @@ function App() {
                     selectedItems={selectedItems}
                     parallelCoordinatesControllerMethods={parallelCoordinatesControllerMethods}
                     numAxes={numAxes}
-                    onClearBrushRequested={registerParallelCoordinatesClearBrush}
+                    clearBrushRef={parallelCoordinatesClearBrushRef}
                 />
             </div>
             <AxisCountControl 

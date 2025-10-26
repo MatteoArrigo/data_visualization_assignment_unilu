@@ -3,7 +3,7 @@ import {useEffect, useRef} from 'react';
 
 import ScatterplotD3 from './Scatterplot-d3';
 
-const ScatterplotContainer = ({scatterplotData, xAttribute, yAttribute, selectedItems, scatterplotControllerMethods, onClearBrushRequested}) => {
+const ScatterplotContainer = ({scatterplotData, xAttribute, yAttribute, selectedItems, scatterplotControllerMethods, clearBrushRef}) => {
 
     // every time the component re-render
     useEffect(()=>{
@@ -32,13 +32,22 @@ const ScatterplotContainer = ({scatterplotData, xAttribute, yAttribute, selected
         const scatterplotD3 = new ScatterplotD3(divContainerRef.current);
         scatterplotD3.create({size:getChartSize()});
         scatterplotD3Ref.current = scatterplotD3;
+        
+        // Expose clearBrush method via ref
+        clearBrushRef.current = () => {
+            if (scatterplotD3Ref.current) {
+                scatterplotD3Ref.current.clearBrush();
+            }
+        };
+        
         return ()=>{
             // did unmount, the return function is called once the component did unmount (removed for the screen)
             console.log("[SCATTERPLOT CONTAINER] useEffect [] return function, called when the component did unmount...");
             const scatterplotD3 = scatterplotD3Ref.current;
             scatterplotD3.clear()
+            clearBrushRef.current = null;
         }
-    },[]);
+    },[clearBrushRef]);
 
     // Update scatterplot when data or attributes change
     useEffect(()=>{
@@ -84,18 +93,6 @@ const ScatterplotContainer = ({scatterplotData, xAttribute, yAttribute, selected
         const scatterplotD3 = scatterplotD3Ref.current
         scatterplotD3.highlightSelectedItems(selectedItems)
     },[selectedItems])
-
-    // Handle external clear brush request
-    useEffect(() => {
-        if (onClearBrushRequested) {
-            onClearBrushRequested(() => {
-                const scatterplotD3 = scatterplotD3Ref.current;
-                if (scatterplotD3) {
-                    scatterplotD3.clearBrush();
-                }
-            });
-        }
-    }, [onClearBrushRequested]);
 
 
     return(

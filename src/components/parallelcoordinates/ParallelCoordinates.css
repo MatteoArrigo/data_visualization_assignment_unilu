@@ -34,7 +34,7 @@
     fill: none;
     stroke: #B0BEC5;
     stroke-width: 1.2px;
-    opacity: 0.15;
+    opacity: 0.2;
     transition: stroke 0.2s, stroke-width 0.2s, opacity 0.2s;
 }
 
