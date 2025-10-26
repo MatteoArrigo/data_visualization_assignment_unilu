@@ -27,7 +27,7 @@ class ScatterplotD3 {
         // get the effect size of the view by subtracting the margin
         this.width = this.size.width - this.margin.left - this.margin.right;
         this.height = this.size.height - this.margin.top - this.margin.bottom ;
-        console.log("create SVG width=" + (this.width + this.margin.left + this.margin.right ) + " height=" + (this.height+ this.margin.top + this.margin.bottom));
+        console.log("[SCATTERPLOT D3] create SVG width=" + (this.width + this.margin.left + this.margin.right ) + " height=" + (this.height+ this.margin.top + this.margin.bottom));
         // initialize the svg and keep it in a class property to reuse it in renderScatterplot()
         this.matSvg=d3.select(this.el).append("svg")
             .attr("width", this.width + this.margin.left + this.margin.right)
@@ -55,16 +55,15 @@ class ScatterplotD3 {
     }
 
     changeBorderAndOpacity(selection, selected){
-        selection.style("opacity", selected?1:this.defaultOpacity)
+        selection.style("opacity", selected ? 1 : this.defaultOpacity)
         ;
 
         selection.select(".markerCircle")
-            .attr("stroke-width",selected?2:0)
+            .attr("stroke-width", selected ? 2 : 0)
         ;
     }
 
-    updateMarkers(selection,xAttribute,yAttribute){
-        // transform selection
+    updateMarkers(selection, xAttribute, yAttribute){
         selection
             .transition().duration(this.transitionDuration)
             .attr("transform", (item)=>{
@@ -78,11 +77,7 @@ class ScatterplotD3 {
     }
 
     highlightSelectedItems(selectedItems){
-        // use pattern update to change the border and opacity of the markers:
-        //      - call this.changeBorderAndOpacity(selection,true) for markers that match selectedItems
-        //      - this.changeBorderAndOpacity(selection,false) for markers the do not match selectedItems
-        this.matSvg.selectAll(".markerG")
-            // all elements with the class .markerG (empty the first time)
+        this.matSvg.selectAll(".markerG")           // The printed scattered points
             .data(selectedItems,(itemData)=>itemData.index)
             .join(
                 enter=>enter,
@@ -163,7 +158,7 @@ class ScatterplotD3 {
 
 
     renderScatterplot = function (visData, xAttribute, yAttribute, controllerMethods){
-        console.log("render scatterplot with a new data list ...")
+        console.log("[SCATTERPLOT D3] render scatterplot with a new data list ...")
         // build the size scales and x,y axis
         this.updateAxis(visData, xAttribute, yAttribute);
 

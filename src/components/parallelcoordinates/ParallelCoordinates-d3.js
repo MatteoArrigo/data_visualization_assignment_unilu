@@ -6,8 +6,6 @@ class ParallelCoordinatesD3 {
     height;
     width;
     matSvg;
-    // add specific class properties used for the vis render/updates
-    transitionDuration = 500;
     
     // Scales for each dimension
     yScales = {};
@@ -15,13 +13,10 @@ class ParallelCoordinatesD3 {
     
     // Store dimension types
     dimensionTypes = {}; // 'linear', 'point', or 'categorical'
-    
     // Dimensions to display (numeric attributes)
     dimensions = [];
-    
     // All available dimensions
     allDimensions = [];
-    
     // Number of axes to display
     numAxesToShow = 6;
     
@@ -43,10 +38,11 @@ class ParallelCoordinatesD3 {
         this.width = this.size.width - this.margin.left - this.margin.right;
         this.height = this.size.height - this.margin.top - this.margin.bottom;
         
-        console.log("create Parallel Coordinates SVG width=" + (this.width + this.margin.left + this.margin.right) + 
+        console.log("[PARALLEL COORDINATES D3] [PARALLEL COORDINATES D3] create Parallel Coordinates SVG width=" + (this.width + this.margin.left + this.margin.right) + 
                     " height=" + (this.height + this.margin.top + this.margin.bottom));
         
         // initialize the svg and keep it in a class property
+        // The whole plot is wrapped in a group element parallelCoordinatesG
         this.matSvg = d3.select(this.el).append("svg")
             .attr("width", this.width + this.margin.left + this.margin.right)
             .attr("height", this.height + this.margin.top + this.margin.bottom)
@@ -54,10 +50,11 @@ class ParallelCoordinatesD3 {
             .attr("class", "parallelCoordinatesG")
             .attr("transform", "translate(" + this.margin.left + "," + this.margin.top + ")");
         
+        // Group for plot lines
         this.matSvg.append("g")
-            .attr("class", "foreground");
+            .attr("class", "pcp_lines");
         
-        // Create group for axes
+        // Create group for axes (+ choiceboxes + drag handles)
         this.matSvg.append("g")
             .attr("class", "axes");
     }
@@ -77,8 +74,6 @@ class ParallelCoordinatesD3 {
     categorizeDimension = function(data, dimension) {
         if(dimension === "price" || dimension === "area")
             return 'linear';
-        
-        // Safely check the first value of the dimension in the data array
         if (typeof data[0][dimension] === 'number')
             return 'point';
         return 'categorical';
@@ -90,7 +85,7 @@ class ParallelCoordinatesD3 {
         
         // Create x scale for dimension positioning (using indices instead of dimension names)
         // Add padding on both sides to prevent choiceboxes from being cut off
-        const axisPadding = 10; // Padding in pixels on each side
+        const axisPadding = 20; // Padding in pixels on each side
         this.xScale = d3.scalePoint()
             .domain(d3.range(dimensions.length))
             .range([axisPadding, this.width - axisPadding]);
@@ -137,8 +132,7 @@ class ParallelCoordinatesD3 {
         const axisGroup = this.matSvg.select(".axes");
         const self = this;
         
-        console.log("updateAxes - allDimensions:", self.allDimensions);
-        console.log("updateAxes - dimensions to display:", self.dimensions);
+        console.log("[PARALLEL COORDINATES D3] [PARALLEL COORDINATES D3] updateAxes - dimensions to display:", self.dimensions);
         
         // Remove old axes
         axisGroup.selectAll(".dimension").remove();
@@ -150,9 +144,9 @@ class ParallelCoordinatesD3 {
             .attr("class", "dimension")
             .attr("transform", d => `translate(${this.xScale(d.index)}, 0)`);
         
-        // Add axis for each dimension (with appropriate formatting based on type)
+        // Add axis for each dimension
         dimensionGroups.append("g")
-            .attr("class", d => `axis axis-${self.dimensionTypes[d.dim]}`)
+            .attr("class", d => `axis axis-style`)
             .each(function(d, i, nodes) {
                 const dimType = self.dimensionTypes[d.dim];
                 let axis = d3.axisLeft(self.yScales[d.dim]);
@@ -212,13 +206,16 @@ class ParallelCoordinatesD3 {
     addDragBehavior = function(dimensionGroups, controllerMethods) {
         const self = this;
         
+        // This is the d3 drag behavior, that will be added to each axis's drag handle
         const drag = d3.drag()
             .on("start", function(event, d) {
                 d3.select(this).classed("active", true);
                 d3.select(this).raise();
+                // The active class indicates that the axis is being dragged
+                // and raise() brings it to the front
             })
             .on("drag", function(event, d) {
-                // Update the position during drag
+                // Update the drag-handle position during drag
                 const x = event.x;
                 d3.select(this).attr("transform", `translate(${x}, 0)`);
             })
@@ -265,6 +262,33 @@ class ParallelCoordinatesD3 {
         dimensionGroups.select(".drag-handle").call(drag);
     }
     
+    // Add brushes to each axis
+    addBrushes = function(dimensionGroups, controllerMethods) {
+        const self = this;
+        
+        dimensionGroups.each(function(d) {
+            const dimensionGroup = d3.select(this);
+            const dimension = d.dim;
+            const axisIndex = d.index;
+            
+            // Create a brush for this dimension
+            const brush = d3.brushY()
+                .extent([[-10, 0], [10, self.height]])
+                .on("start brush end", function(event) {
+                    self.handleBrush(event, dimension, axisIndex, controllerMethods);
+                });
+            
+            // Store the brush with a unique key
+            const brushKey = `${dimension}_${axisIndex}`;
+            self.brushes[brushKey] = brush;
+            
+            // Add brush group
+            dimensionGroup.append("g")
+                .attr("class", "brush")
+                .call(brush);
+        });
+    }
+
     // Method to change dimension at a specific axis position
     changeDimension = function(axisIndex, newDimension, controllerMethods) {
         // Update the dimension at this index
@@ -311,11 +335,9 @@ class ParallelCoordinatesD3 {
     // Method to update the number of axes displayed
     updateAxesCount = function(newCount) {
         const currentCount = this.dimensions.length;
-        
         if (newCount === currentCount) return;
         
         this.numAxesToShow = newCount;
-        
         if (newCount > currentCount) {
             // Add axes - find dimensions not currently displayed
             const dimensionsToAdd = this.allDimensions.filter(dim => 
@@ -339,33 +361,6 @@ class ParallelCoordinatesD3 {
         if (this.lastControllerMethods) {
             this.renderParallelCoordinates(this.visData, this.lastControllerMethods);
         }
-    }
-    
-    // Add brushes to each axis
-    addBrushes = function(dimensionGroups, controllerMethods) {
-        const self = this;
-        
-        dimensionGroups.each(function(d) {
-            const dimensionGroup = d3.select(this);
-            const dimension = d.dim;
-            const axisIndex = d.index;
-            
-            // Create a brush for this dimension
-            const brush = d3.brushY()
-                .extent([[-10, 0], [10, self.height]])
-                .on("start brush end", function(event) {
-                    self.handleBrush(event, dimension, axisIndex, controllerMethods);
-                });
-            
-            // Store the brush with a unique key
-            const brushKey = `${dimension}_${axisIndex}`;
-            self.brushes[brushKey] = brush;
-            
-            // Add brush group
-            dimensionGroup.append("g")
-                .attr("class", "brush")
-                .call(brush);
-        });
     }
     
     // Handle brush events
@@ -420,7 +415,7 @@ class ParallelCoordinatesD3 {
             return;
         }
         
-        // Filter data based on all brush ranges
+        // Filter data based on all brush ranges    --> AND filtering
         const selectedItems = this.visData.filter(item => {
             // Item must be within ALL brush ranges
             return Object.keys(this.brushRanges).every(brushKey => {
@@ -470,7 +465,7 @@ class ParallelCoordinatesD3 {
         const selectedIndices = new Set(selectedItems.map(item => item.index));
 
         // Update all lines by adding/removing 'selected' class
-        this.matSvg.select(".foreground").selectAll(".data-line")
+        this.matSvg.select(".pcp_lines").selectAll(".data-line")
             .classed("selected", d => selectedIndices.has(d.index))
             .each(function(d) {
                 if (selectedIndices.has(d.index)) {
@@ -479,14 +474,13 @@ class ParallelCoordinatesD3 {
             });
     }
 
+    // Actual rendering method
     renderParallelCoordinates = function(visData, controllerMethods) {
-        console.log("render parallel coordinates with new data list...");
-        
+        console.log("[PARALLEL COORDINATES D3] render parallel coordinates with new data list...");
         if (visData.length === 0) return;
         
         // Store controller methods for axis count updates
         this.lastControllerMethods = controllerMethods;
-        
         // Store data reference for brush filtering
         this.visData = visData;
         
@@ -497,11 +491,11 @@ class ParallelCoordinatesD3 {
         // Store all available dimensions
         this.allDimensions = allDimensions;
         
-        console.log("All available dimensions:", allDimensions);
+        console.log("[PARALLEL COORDINATES D3] All available dimensions:", allDimensions);
         
         // Initialize dimensions if not set
         if (this.dimensions.length === 0) {
-            // Use numAxesToShow dimensions for display (but all are available in dropdowns)
+            // Use numAxesToShow dimensions for display
             this.dimensions = allDimensions.slice(0, Math.min(this.numAxesToShow, allDimensions.length));
         } else {
             // Validate current dimensions still exist in the data
@@ -514,17 +508,15 @@ class ParallelCoordinatesD3 {
             }
         }
         
-        console.log("Dimensions to display:", this.dimensions);
+        console.log("[PARALLEL COORDINATES D3] Dimensions to display:", this.dimensions);
         
         // Update scales
         this.updateScales(visData, this.dimensions);
-        
         // Update axes (with brushes)
         this.updateAxes(controllerMethods);
         
         // Render lines in foreground
-        const foreground = this.matSvg.select(".foreground");
-        
+        const foreground = this.matSvg.select(".pcp_lines");
         foreground.selectAll(".data-line")
             .data(visData, d => d.index)
             .join(
@@ -533,47 +525,7 @@ class ParallelCoordinatesD3 {
                         .attr("class", "data-line")
                         .attr("d", d => this.path(d))
                         .on("click", (event, itemData) => {
-                            // Clear all brushes first
-                            this.clearAllBrushes();
-                            
-                            // Also clear scatterplot brush
-                            if (controllerMethods.clearOtherBrushes) {
-                                controllerMethods.clearOtherBrushes();
-                            }
-                            
-                            // Find all items that match at the clicked segment
-                            const matchingItems = this.findMatchingItemsAtSegment(event, itemData);
-                            
-                            if (matchingItems.length > 1) {
-                                // Multiple overlapping lines - select all of them
-                                const currentSelected = controllerMethods.getSelectedItems ? 
-                                    controllerMethods.getSelectedItems() : [];
-                                const selectedIndices = new Set(currentSelected.map(item => item.index));
-                                const matchingIndices = matchingItems.map(item => item.index);
-                                
-                                // Check if all matching items are already selected
-                                const allSelected = matchingIndices.every(idx => selectedIndices.has(idx));
-                                
-                                if (allSelected) {
-                                    // Toggle off - remove all matching items from selection
-                                    const newSelection = currentSelected.filter(
-                                        item => !matchingIndices.includes(item.index)
-                                    );
-                                    controllerMethods.updateSelectedItems(newSelection);
-                                } else {
-                                    // Add all matching items to selection (keep existing selection)
-                                    const newItems = matchingItems.filter(
-                                        item => !selectedIndices.has(item.index)
-                                    );
-                                    controllerMethods.updateSelectedItems([...currentSelected, ...newItems]);
-                                }
-                            } else if (matchingItems.length === 1) {
-                                // Single line - use toggle behavior
-                                controllerMethods.handleOnClick(matchingItems[0]);
-                            } else {
-                                // Fallback to original item if no segment detected
-                                controllerMethods.handleOnClick(itemData);
-                            }
+                            this.handleLineClick(event, itemData, controllerMethods);
                         })
                         .on("mouseenter", (event, itemData) => {
                             this.handleLineHover(event, itemData);
@@ -588,7 +540,6 @@ class ParallelCoordinatesD3 {
                 },
                 update => {
                     update
-                        .transition().duration(this.transitionDuration)
                         .attr("d", d => this.path(d));
                     return update;
                 },
@@ -596,6 +547,51 @@ class ParallelCoordinatesD3 {
                     exit.remove();
                 }
             );
+    }
+
+    // Handle click on a data line
+    handleLineClick = function(event, itemData, controllerMethods) {
+        // Clear all brushes first
+        this.clearAllBrushes();
+        
+        // Also clear scatterplot brush
+        if (controllerMethods.clearOtherBrushes) {
+            controllerMethods.clearOtherBrushes();
+        }
+        
+        // Find all items that match at the clicked segment
+        const matchingItems = this.findMatchingItemsAtSegment(event, itemData);
+        
+        if (matchingItems.length > 1) {
+            // Multiple overlapping lines - select all of them
+            const currentSelected = controllerMethods.getSelectedItems ? 
+                controllerMethods.getSelectedItems() : [];
+            const selectedIndices = new Set(currentSelected.map(item => item.index));
+            const matchingIndices = matchingItems.map(item => item.index);
+            
+            // Check if all matching items are already selected
+            const allSelected = matchingIndices.every(idx => selectedIndices.has(idx));
+            
+            if (allSelected) {
+                // Toggle off - remove all matching items from selection
+                const newSelection = currentSelected.filter(
+                    item => !matchingIndices.includes(item.index)
+                );
+                controllerMethods.updateSelectedItems(newSelection);
+            } else {
+                // Add all matching items to selection (keep existing selection)
+                const newItems = matchingItems.filter(
+                    item => !selectedIndices.has(item.index)
+                );
+                controllerMethods.updateSelectedItems([...currentSelected, ...newItems]);
+            }
+        } else if (matchingItems.length === 1) {
+            // Single line - use toggle behavior
+            controllerMethods.handleOnClick(matchingItems[0]);
+        } else {
+            // Fallback to original item if no segment detected
+            controllerMethods.handleOnClick(itemData);
+        }
     }
 
     // Find all items that match at a specific segment
@@ -640,7 +636,7 @@ class ParallelCoordinatesD3 {
         const matchingIndices = new Set(matchingItems.map(d => d.index));
         
         // Highlight all matching lines
-        this.matSvg.select(".foreground").selectAll(".data-line")
+        this.matSvg.select(".pcp_lines").selectAll(".data-line")
             .classed("hovered", d => matchingIndices.has(d.index))
             .filter(d => matchingIndices.has(d.index))
             .raise();
@@ -649,7 +645,7 @@ class ParallelCoordinatesD3 {
     // Clear hover effect
     clearLineHover = function(controllerMethods) {
         // Remove hover class from all lines
-        this.matSvg.select(".foreground").selectAll(".data-line")
+        this.matSvg.select(".pcp_lines").selectAll(".data-line")
             .classed("hovered", false);
         
         // Restore stacking order - selected items on top
@@ -659,7 +655,7 @@ class ParallelCoordinatesD3 {
             []
         );
         
-        this.matSvg.select(".foreground").selectAll(".data-line")
+        this.matSvg.select(".pcp_lines").selectAll(".data-line")
             .filter(d => selectedIndices.has(d.index))
             .raise();
     }

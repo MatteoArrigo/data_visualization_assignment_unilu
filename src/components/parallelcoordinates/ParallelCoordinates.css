@@ -14,20 +14,10 @@
     font-size: 11px;
 }
 
-/* Different styles for different axis types */
-.parallelCoordinatesG .axis-linear path,
-.parallelCoordinatesG .axis-linear line {
-    stroke: #000;
-}
-
-.parallelCoordinatesG .axis-point path,
-.parallelCoordinatesG .axis-point line {
-    stroke: #4682b4;
-}
-
-.parallelCoordinatesG .axis-categorical path,
-.parallelCoordinatesG .axis-categorical line {
-    stroke: #8b4513;
+.parallelCoordinatesG .axis-style path,
+.parallelCoordinatesG .axis-style line {
+    stroke: #000000;
+    stroke-width: 1px;
 }
 
 .parallelCoordinatesG .axis-categorical text {
@@ -42,21 +32,22 @@
 .parallelCoordinatesG .data-line {
     cursor: pointer;
     fill: none;
-    stroke: steelblue;
+    stroke: #B0BEC5;
     stroke-width: 1.2px;
-    opacity: 0.2;
+    opacity: 0.15;
     transition: stroke 0.2s, stroke-width 0.2s, opacity 0.2s;
 }
 
 .parallelCoordinatesG .data-line.selected {
-    stroke: rgba(253, 81, 13, 0.658);
-    stroke-width: 2px;
-    opacity: 0.9;
+    stroke: #C62828;
+    stroke-width: 1.8px;
+    opacity: 0.8;
 }
 
 .parallelCoordinatesG .data-line.hovered {
-    stroke: rgb(5, 184, 34) !important;
-    stroke-width: 3.5px !important;
+    stroke: #F9A825  !important;
+    /* stroke: rgb(5, 184, 34) !important; */
+    stroke-width: 3px !important;
     opacity: 1 !important;
 }
 
